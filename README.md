@@ -25,7 +25,6 @@
 - **동작 예시**
   - 음성인식 후 답변 생성
   - ![음성답변](https://github.com/user-attachments/assets/fdd25b13-de30-4a40-9301-d732ed3e4411)
-  - ![코드](https://github.com/user-attachments/assets/daf0c6a9-309c-4039-92ba-1c7d0187ccdd)
 
  
 
