@@ -26,6 +26,6 @@
   - **데이터 전처리**
     - **사용한 데이터셋:** [AI허브-소상공인 고객 주문 질의-응답 텍스트](https://www.aihub.or.kr/aihubdata/data/view.do?currMenu=115&topMenu=100&dataSetSn=102) 169,633행 데이터
     - 키오스크의 특성상 고객 질의에 응답하는 방식으로 시작
-    - ![비정상 데이터](https://github.com/user-attachments/assets/ced4955b-284e-4d77-9dea-bc3f4e83bd11)
+     ![비정상 데이터](https://github.com/user-attachments/assets/ced4955b-284e-4d77-9dea-bc3f4e83bd11)
     - 원본 데이터는 사진과 같이 비정상 데이터 존재 및 키오스크와 관련 없는 데이터(예약 등)이 존재
     -    
