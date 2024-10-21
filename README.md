@@ -34,7 +34,7 @@
 <hr>
 
 - **프로젝트 과정**
-  - **데이터 전처리**
+  - **음성 데이터 전처리**
     - **사용한 데이터셋:** [AI허브-소상공인 고객 주문 질의-응답 텍스트](https://www.aihub.or.kr/aihubdata/data/view.do?currMenu=115&topMenu=100&dataSetSn=102) 169,633행 데이터
     - 키오스크의 특성상 고객 질의에 응답하는 방식으로 시작
      ![비정상 데이터](https://github.com/user-attachments/assets/ced4955b-284e-4d77-9dea-bc3f4e83bd11)
@@ -45,3 +45,8 @@
     ![전처리2](https://github.com/user-attachments/assets/bbf2dd7f-b207-4b3c-a145-c71086c56bd8)
     - **토크나이징:** 데이터 Q/A로 분리 후 STRAT, END토큰을 답변에 추가 후 tokenizer 설정
     - **패딩:** 각 Q,A의 최대 길이에 맞춰 post_padding
+  - **Sequence to Sequence 모델 학습**
+  -  **손동작 데이터셋 생성**
+  -  **손동작 데이터셋 전처리**
+  -  **손동작 LSTM 모델 학습**
+  -  **Rest-server 구현(Flask)**
