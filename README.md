@@ -22,6 +22,15 @@
  
 <hr>
 
+- **동작 예시**
+  - 음성인식 후 답변 생성
+  ![음성답변](https://github.com/user-attachments/assets/fdd25b13-de30-4a40-9301-d732ed3e4411)
+  ![코드](https://github.com/user-attachments/assets/daf0c6a9-309c-4039-92ba-1c7d0187ccdd)
+
+ 
+
+<hr>
+
 - **프로젝트 과정**
   - **데이터 전처리**
     - **사용한 데이터셋:** [AI허브-소상공인 고객 주문 질의-응답 텍스트](https://www.aihub.or.kr/aihubdata/data/view.do?currMenu=115&topMenu=100&dataSetSn=102) 169,633행 데이터
