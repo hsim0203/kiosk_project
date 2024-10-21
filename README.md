@@ -25,6 +25,9 @@
 - **동작 예시**
   - 음성인식 후 답변 생성
   - ![음성답변](https://github.com/user-attachments/assets/fdd25b13-de30-4a40-9301-d732ed3e4411)
+  - 손동작 인식 후 동작판별
+  - ![손동작](https://github.com/user-attachments/assets/fd820497-1833-4aed-bf28-12b7245fc748)
+
 
  
 
