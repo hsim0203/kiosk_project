@@ -32,3 +32,5 @@
     ![전처리1](https://github.com/user-attachments/assets/c34e18ad-b541-4d2b-bb86-a6fc7e561dcd)
     - 새로운 인덱스 번호를 붙인 후 Q와 A 데이터 한 행으로 병합
     ![전처리2](https://github.com/user-attachments/assets/bbf2dd7f-b207-4b3c-a145-c71086c56bd8)
+    - **토크나이징:** 데이터 Q/A로 분리 후 STRAT, END토큰을 답변에 추가 후 tokenizer 설정
+    - **패딩:** 각 Q,A의 최대 길이에 맞춰 post_padding
