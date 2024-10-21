@@ -27,5 +27,8 @@
     - **사용한 데이터셋:** [AI허브-소상공인 고객 주문 질의-응답 텍스트](https://www.aihub.or.kr/aihubdata/data/view.do?currMenu=115&topMenu=100&dataSetSn=102) 169,633행 데이터
     - 키오스크의 특성상 고객 질의에 응답하는 방식으로 시작
      ![비정상 데이터](https://github.com/user-attachments/assets/ced4955b-284e-4d77-9dea-bc3f4e83bd11)
-    - 원본 데이터는 사진과 같이 비정상 데이터 존재 및 키오스크와 관련 없는 데이터(예약 등)이 존재
-    -    
+    - 원본 데이터는 사진과 같이 Q/A가 연달아 나오지 않는 비정상 데이터 존재 및 키오스크와 관련 없는 데이터(예약 등)이 존재
+    - 비정상 데이터 및 불필요 데이터 삭제, 고객이 발화자이고 Q인 대화문, 발화자가 가게이고 A인 대화문으로 분리
+    ![전처리1](https://github.com/user-attachments/assets/c34e18ad-b541-4d2b-bb86-a6fc7e561dcd)
+    - 새로운 인덱스 번호를 붙인 후 Q와 A 데이터 한 행으로 병합
+    ![전처리2](https://github.com/user-attachments/assets/bbf2dd7f-b207-4b3c-a145-c71086c56bd8)
