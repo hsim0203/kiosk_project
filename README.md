@@ -47,7 +47,10 @@
     - **토크나이징:** 데이터 Q/A로 분리 후 STRAT, END토큰을 답변에 추가 후 tokenizer 설정
     - **패딩:** 각 Q,A의 최대 길이에 맞춰 post_padding
   - **Sequence to Sequence 모델 학습**
-  -  **손동작 데이터셋 생성**
-  -  **손동작 데이터셋 전처리**
-  -  **손동작 LSTM 모델 학습**
+  -  ~~**손동작 데이터셋 생성**~~
+  -  ~~**손동작 데이터셋 전처리**~~
+  -  ~~**손동작 LSTM 모델 학습**~~
+  -  **Mediapipe를 통한 KNN 손동작 알고리즘**
+    - [ntu-rris/google-mediapipe](https://github.com/ntu-rris/google-mediapipe) gesture 데이터 사용
+    - 손 관절의 정보를 추출해 각도를 계산해 손동작을 분류
   -  **Rest-server 구현(Flask)**
