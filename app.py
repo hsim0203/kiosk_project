@@ -21,6 +21,7 @@ import numpy.linalg as LA
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+import pandas as pd
 
 #메모리 캐시 비우기
 import torch
@@ -95,20 +96,44 @@ def decode_sequence(input_seq):
 whisper_model = whisper.load_model('medium')
 ###########################################################
 
-########################mediapipe관련#######################
-# LSTM 모델 경로
-hands_model = keras.models.load_model('C://ai_project01/hand_train_result0930')
-# LSTM모델 출력
-hands_model.summary()
+########################손동작 인식 관련######################
+#
+# # LSTM 모델 경로
+# hands_model = keras.models.load_model('C://ai_project01/hand_train_result0930')
+# # LSTM모델 출력
+# hands_model.summary()
+#
+# # 손동작 5번째마다 예측
+# seq_length = 30
+#
+# gesture = {
+#     0: 'LEFT', 1: "RIGHT", 2: "UP", 3: 'DOWN', 4: 'SELECT'
+# }
+#
+# mp_hands = mp.solutions.hands
 
-# 손동작 5번째마다 예측
-seq_length = 30
-
+##KNN 예측
 gesture = {
-    0: 'LEFT', 1: "RIGHT", 2: "UP", 3: 'DOWN', 4: 'SELECT'
+    0: 'FIRST', 1: "ONE", 2: "TWO", 3: 'THREE', 4: 'FOUR', 5: 'FIVE', 6: 'SIX', 7: 'ROCK', 8: 'SPIDERMAN', 9: 'YEACH',
+    10: 'OK',
 }
+kiosk_gesture = {
+    0:'NO', 1:'ONE', 9:'TWO', 6:'THREE', 4:'FOUR', 10:'OK'
+}
+gesture_df = pd.read_csv('c:/ai_project01/whisper-rest-server/gesture_train.csv', header=None)
+
+angle = gesture_df.iloc[:, :-1]
+angle_arr = angle.values.astype(np.float32)
+label = gesture_df.iloc[:, -1]
+label_arr = label.values.astype(np.float32)
+
+knn = cv2.ml.KNearest_create()
+
+knn.train(angle_arr, cv2.ml.ROW_SAMPLE, label_arr)
 
 mp_hands = mp.solutions.hands
+mp_drawing = mp.solutions.drawing_utils
+
 ###########################################################
 
 #Flask
@@ -147,24 +172,22 @@ def whisper():
     # 예측
     predicted_sentence = decode_sequence(input_seq)
 
-    print(f"질문: {input_question}")
-    print(f"예측된 답변: {predicted_sentence}")
+    print(f"Whisper 음성 인식(질문): {input_question}")
+    #print(f"Seq2Seq 답변 생성(응답): {predicted_sentence}")
     
     #end 앞에서 끊기
     result = predicted_sentence.split(' end')[0]
-
-    print(result)
+    print(f"Seq2Seq 답변 생성(응답): {result}")
+    #print(result)
     print(jsonify(result=result, input_question=input_question, time=nowStr))
     return jsonify(result=result, input_question=input_question, time=nowStr)
 
-
-#손동장 탐지 후 결과 리턴
+##KNN
+#손동작 탐지 후 결과 리턴
 @app.route("/lstm_detect", methods=["POST"])
 def lstm_detect01():
     # 탐지 결과를 저장하는 변수
-    lstm_result = []
-    # 손동작을 저장하는 리스트
-    seq = []
+    gesture_result = []
 
     # 화면에서 손과 손가락 위치 탐지
     with mp_hands.Hands() as hands:
@@ -174,21 +197,14 @@ def lstm_detect01():
 
 
         encoded_data_arr = json_image.get("data")
-
-
         for index, encoded_data in enumerate(encoded_data_arr):
-
-
             encoded_data = encoded_data.replace("image/jpeg;base64,", "")
             decoded_data = base64.b64decode(encoded_data)
 
             # decoded_data -> 1차원 배열 변환
             nparr = np.fromstring(decoded_data, np.uint8)
-
             # nparr -> BGR 3차원 배열 변환
             image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-
             # BGR -> RGB로 변환 후 손, 손가락 관절위치 탐지 후 리턴
             results = hands.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 
@@ -198,54 +214,31 @@ def lstm_detect01():
                 # hand_landmarks에 탐지된 keypoint값을 순서대로 1개씩 저장,
                 for hand_landmarks in results.multi_hand_landmarks:
 
-                    joint = np.zeros((21, 4))
+                    joint = np.zeros((21, 3))
 
                     # hand_landmarks.landmark - 손의 keypoint 좌표 리턴
                     # j - keypoint의 index
                     # lm - keypoint의 좌표
                     for j, lm in enumerate(hand_landmarks.landmark):
-                        #print("j=", j)
-                        #print("lm=", lm)
-                        # keypoint의 x,y,z좌표
-                        #print("lm.x", lm.x)
-                        #print("lm.y", lm.y)
-                        #print("lm.z", lm.z)
-                        #print("lm.visibility", lm.visibility)
                         # 각도를 구하기 위해 x,y,z 좌표 배열에 대입
-                        joint[j] = [lm.x, lm.y, lm.z, lm.visibility]
-                        #print("=" * 100)
+                        joint[j] = [lm.x, lm.y, lm.z]
 
-                    print("=" * 100)
-                    print("joint=", joint)
-                    print("=" * 100)
-
+                    # v1에서 v2를 빼서 차를 구해 거리계산
                     v1 = joint[[0, 1, 2, 3, 0, 5, 6, 7, 0, 9, 10, 11, 0, 13, 14, 15, 0, 17, 18, 19], :]
                     v2 = joint[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20], :]
 
                     # v1에서 v2를 빼서 거리를 계산
                     # v는 2차원 배열
                     v = v2 - v1
-                    print("=" * 100)
-                    print("v=", v)
-                    print("=" * 100)
 
                     # v를 1차원배열로 정규화
                     v_normal = LA.norm(v, axis=1)
-                    print("=" * 100)
-                    print("v_normal=", v_normal)
-                    print("=" * 100)
 
                     # v와 연산을 위해 2차원배열로 변환
                     v_normal2 = v_normal[:, np.newaxis]
-                    print("=" * 100)
-                    print("v_normal2=", v_normal2)
-                    print("=" * 100)
 
                     # v/v_normal2 로 나눠서 거리를 정규화
                     v2 = v / v_normal2
-                    print("=" * 100)
-                    print("v2=", v2)
-                    print("=" * 100)
 
                     a = v2[[0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 16, 17, 18], :]
                     b = v2[[1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15, 17, 18, 19], :]
@@ -253,89 +246,219 @@ def lstm_detect01():
                     # ein - 행렬곱
                     # a와 b 배열의 곱 계산
                     ein = np.einsum('ij,ij->i', a, b)
-                    print("=" * 100)
-                    print("ein=", ein)
-                    print("=" * 100)
 
                     # radian - 코사인값(1차원 배열)
                     radian = np.arccos(ein)
-                    print("=" * 100)
-                    print("radian=", radian)
-                    print("=" * 100)
 
                     # radian값을 각도로 변환
                     angle = np.degrees(radian)
-                    print("=" * 100)
-                    print("angle=", angle)
-                    print("=" * 100)
 
-                    # joint.flatten() - 관절 좌표를 1차원 배열로 변환
-                    # data에 관절 좌표, 각도 저장
-                    data = np.concatenate([joint.flatten(), angle])
-                    print("=" * 100)
-                    print("data=", data)
-                    print("=" * 100)
+                    # angle numpy배열로 변환
+                    # 각도출력 2차원배열
+                    data = np.array([angle], dtype=np.float32)
 
-                    seq.append(data)
-                    #디버깅
-                    print(f"seq의 길이: {len(seq)}")
+                    retval, results, neighbours, dist = knn.findNearest(data, 3)
+                    idx = int(retval)
 
-                    if len(seq) < seq_length:
-                        continue
+                    # 확률 계산 (개선 방안 1 적용)
+                    norm_dist = (dist - dist.min()) / (dist.max() - dist.min() + 1e-8)
+                    avg_norm_dist = np.mean(norm_dist)
+                    conf = (1 - avg_norm_dist) * 1.5  # 스케일링 적용
+                    conf = min(conf, 1.0)  # 최대값 1로 제한
 
-                    # last_seq <- 마지막 손동작 행 길이만큼 대입
-                    last_seq = seq[-seq_length:]
-                    # last_seq -> 배열로 변환
-                    input_arr = np.array(last_seq, dtype=np.float32)
-                    print("input_arr=", input_arr.shape)
+                    # kiosk_gesture에 해당하는 제스처 텍스트
+                    if idx in kiosk_gesture.keys():
+                        gesture_text = kiosk_gesture[idx]
 
-                    # input_arr을 3차원 배열로 변환
-                    input_lstm_arr = input_arr.reshape(1,30,99)
-                    # 디버깅
-                    print("input_lstm_arr의 shape:", input_lstm_arr.shape)
-                    print("=" * 100)
-                    print("input_lstm_arr=", input_lstm_arr)
-                    print("=" * 100)
-                    print("=" * 100)
-                    print("input_lstm_arr.shape=", input_lstm_arr.shape)
-                    print("=" * 100)
-
-                    # y_pred <- lstm 모델을 통해 수어 예측 후 대입
-                    y_pred = hands_model.predict(input_lstm_arr)
-                    print("=" * 100)
-                    print("y_pred=", y_pred)
-                    print("=" * 100)
-
-                    # idx <- y_pred에서 가장 예측 확률 값이 가장 높은 인덱스 대입
-                    idx = int(np.argmax(y_pred))
-                    print("=" * 100)
-                    print("idx=", idx)
-                    print("=" * 100)
-
-                    letter = gesture[idx]
-                    print("=" * 100)
-                    print("letter=", letter)
-                    print("=" * 100)
-
-                    # conf <- idx번째의 확률 대입
-                    conf = y_pred[0, idx]
-                    print("=" * 100)
-                    print("conf=", conf)
-                    print("=" * 100)
-
-                    # 탐지 결과 lstm_result에 추가
-                    lstm_result.append({
-                        "text": f"{letter}",
-                        "conf":f"{round(conf *100,2)}",
-                        "time":f"{nowStr}"
+                    # 탐지 결과 gesture_result에 추가
+                    gesture_result.append({
+                        "text": f"{gesture_text}",
+                        "conf": f"{round(conf * 100, 2)}%",  # 확률을 퍼센트로 변환
+                        #"time": f"{nowStr}"
                     })
 
-                    print("=" * 100)
-                    print("lstm_result=", lstm_result)
-                    print("=" * 100)
-
     # 결과를 json으로 변환 후 return
-    return json.dumps(lstm_result)
+    return json.dumps(gesture_result)
+
+##LSTM
+#손동작 탐지 후 결과 리턴
+# @app.route("/lstm_detect", methods=["POST"])
+# def lstm_detect01():
+#     # 탐지 결과를 저장하는 변수
+#     lstm_result = []
+#     # 손동작을 저장하는 리스트
+#     seq = []
+#
+#     # 화면에서 손과 손가락 위치 탐지
+#     with mp_hands.Hands() as hands:
+#         json_image = request.get_json()
+#         now = datetime.now()
+#         nowStr = now.strftime('%Y-%m-%d %H:%M:%S.%f')
+#
+#
+#         encoded_data_arr = json_image.get("data")
+#
+#
+#         for index, encoded_data in enumerate(encoded_data_arr):
+#
+#
+#             encoded_data = encoded_data.replace("image/jpeg;base64,", "")
+#             decoded_data = base64.b64decode(encoded_data)
+#
+#             # decoded_data -> 1차원 배열 변환
+#             nparr = np.fromstring(decoded_data, np.uint8)
+#
+#             # nparr -> BGR 3차원 배열 변환
+#             image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+#
+#
+#             # BGR -> RGB로 변환 후 손, 손가락 관절위치 탐지 후 리턴
+#             results = hands.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+#
+#             # results.multi_hand_landmarks - 탐지된 손의 keypoint 값들이 저장
+#             if results.multi_hand_landmarks != None:
+#
+#                 # hand_landmarks에 탐지된 keypoint값을 순서대로 1개씩 저장,
+#                 for hand_landmarks in results.multi_hand_landmarks:
+#
+#                     joint = np.zeros((21, 4))
+#
+#                     # hand_landmarks.landmark - 손의 keypoint 좌표 리턴
+#                     # j - keypoint의 index
+#                     # lm - keypoint의 좌표
+#                     for j, lm in enumerate(hand_landmarks.landmark):
+#                         #print("j=", j)
+#                         #print("lm=", lm)
+#                         # keypoint의 x,y,z좌표
+#                         #print("lm.x", lm.x)
+#                         #print("lm.y", lm.y)
+#                         #print("lm.z", lm.z)
+#                         #print("lm.visibility", lm.visibility)
+#                         # 각도를 구하기 위해 x,y,z 좌표 배열에 대입
+#                         joint[j] = [lm.x, lm.y, lm.z, lm.visibility]
+#                         #print("=" * 100)
+#
+#                     print("=" * 100)
+#                     print("joint=", joint)
+#                     print("=" * 100)
+#
+#                     v1 = joint[[0, 1, 2, 3, 0, 5, 6, 7, 0, 9, 10, 11, 0, 13, 14, 15, 0, 17, 18, 19], :]
+#                     v2 = joint[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20], :]
+#
+#                     # v1에서 v2를 빼서 거리를 계산
+#                     # v는 2차원 배열
+#                     v = v2 - v1
+#                     print("=" * 100)
+#                     print("v=", v)
+#                     print("=" * 100)
+#
+#                     # v를 1차원배열로 정규화
+#                     v_normal = LA.norm(v, axis=1)
+#                     print("=" * 100)
+#                     print("v_normal=", v_normal)
+#                     print("=" * 100)
+#
+#                     # v와 연산을 위해 2차원배열로 변환
+#                     v_normal2 = v_normal[:, np.newaxis]
+#                     print("=" * 100)
+#                     print("v_normal2=", v_normal2)
+#                     print("=" * 100)
+#
+#                     # v/v_normal2 로 나눠서 거리를 정규화
+#                     v2 = v / v_normal2
+#                     print("=" * 100)
+#                     print("v2=", v2)
+#                     print("=" * 100)
+#
+#                     a = v2[[0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 16, 17, 18], :]
+#                     b = v2[[1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15, 17, 18, 19], :]
+#
+#                     # ein - 행렬곱
+#                     # a와 b 배열의 곱 계산
+#                     ein = np.einsum('ij,ij->i', a, b)
+#                     print("=" * 100)
+#                     print("ein=", ein)
+#                     print("=" * 100)
+#
+#                     # radian - 코사인값(1차원 배열)
+#                     radian = np.arccos(ein)
+#                     print("=" * 100)
+#                     print("radian=", radian)
+#                     print("=" * 100)
+#
+#                     # radian값을 각도로 변환
+#                     angle = np.degrees(radian)
+#                     print("=" * 100)
+#                     print("angle=", angle)
+#                     print("=" * 100)
+#
+#                     # joint.flatten() - 관절 좌표를 1차원 배열로 변환
+#                     # data에 관절 좌표, 각도 저장
+#                     data = np.concatenate([joint.flatten(), angle])
+#                     print("=" * 100)
+#                     print("data=", data)
+#                     print("=" * 100)
+#
+#                     seq.append(data)
+#                     #디버깅
+#                     print(f"seq의 길이: {len(seq)}")
+#
+#                     if len(seq) < seq_length:
+#                         continue
+#
+#                     # last_seq <- 마지막 손동작 행 길이만큼 대입
+#                     last_seq = seq[-seq_length:]
+#                     # last_seq -> 배열로 변환
+#                     input_arr = np.array(last_seq, dtype=np.float32)
+#                     print("input_arr=", input_arr.shape)
+#
+#                     # input_arr을 3차원 배열로 변환
+#                     input_lstm_arr = input_arr.reshape(1,30,99)
+#                     # 디버깅
+#                     print("input_lstm_arr의 shape:", input_lstm_arr.shape)
+#                     print("=" * 100)
+#                     print("input_lstm_arr=", input_lstm_arr)
+#                     print("=" * 100)
+#                     print("=" * 100)
+#                     print("input_lstm_arr.shape=", input_lstm_arr.shape)
+#                     print("=" * 100)
+#
+#                     # y_pred <- lstm 모델을 통해 수어 예측 후 대입
+#                     y_pred = hands_model.predict(input_lstm_arr)
+#                     print("=" * 100)
+#                     print("y_pred=", y_pred)
+#                     print("=" * 100)
+#
+#                     # idx <- y_pred에서 가장 예측 확률 값이 가장 높은 인덱스 대입
+#                     idx = int(np.argmax(y_pred))
+#                     print("=" * 100)
+#                     print("idx=", idx)
+#                     print("=" * 100)
+#
+#                     letter = gesture[idx]
+#                     print("=" * 100)
+#                     print("letter=", letter)
+#                     print("=" * 100)
+#
+#                     # conf <- idx번째의 확률 대입
+#                     conf = y_pred[0, idx]
+#                     print("=" * 100)
+#                     print("conf=", conf)
+#                     print("=" * 100)
+#
+#                     # 탐지 결과 lstm_result에 추가
+#                     lstm_result.append({
+#                         "text": f"{letter}",
+#                         "conf":f"{round(conf *100,2)}",
+#                         "time":f"{nowStr}"
+#                     })
+#
+#                     print("=" * 100)
+#                     print("lstm_result=", lstm_result)
+#                     print("=" * 100)
+#
+#     # 결과를 json으로 변환 후 return
+#     return json.dumps(lstm_result)
 
 
 
