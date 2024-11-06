@@ -28,7 +28,6 @@
   - ![음성답변](https://github.com/user-attachments/assets/fdd25b13-de30-4a40-9301-d732ed3e4411)
   - 손동작 인식 후 동작판별
   - <img src="https://github.com/user-attachments/assets/5b06fd66-0a7d-4d86-a777-a158e7c01bb1" width="448px" height="68.7px" />
-  - <img src="https://raw.githubusercontent.com/queryholic/captures/master/lombok-install-eclipse/_1.png" width="650" height="400" />
   <!-- - ![손동작](https://github.com/user-attachments/assets/fd820497-1833-4aed-bf28-12b7245fc748) -->
 
 
